@@ -19,45 +19,67 @@ Designed to make common merge conditions easy to integrate.
 Scalability
 ===========
 
-While the intitial intent is for what might be better called micro-business,
-where there's an owner and perhaps a few contractors or part time employees,
-being able to scale up to small-business, in the 10-100 employee range would
-be nice, and mid-size business in the <1000 employee range on the far horizon.
+> While the intitial intent is for what might be better called micro-business,
+> where there's an owner and perhaps a few contractors or part time employees,
+> being able to scale up to small-business, in the 10-100 employee range would
+> be nice, and mid-size business in the < 1000 employee range on the far horizon.
 
-We need to better understand the transaction volume at each of these levels.
-We started by discussing splitting date based transaction indexes by month, but
-it strikes me that it is worth considering splitting out by month and then
-day...  eg accounts/ACCT/YYYY-MM/DD.json
+ 
+> We need to better understand the transaction volume at each of these levels.
+> We started by discussing splitting date based transaction indexes by month, but
+> it strikes me that it is worth considering splitting out by month and then
+> day...  eg `accounts/ACCT/YYYY-MM/DD.json`
 
-Seeing as even small busineses can see 1000s of transactions a month. 
-Mid-size 10s of thousands?
+If the closing period is arbitrary, or there's an intermediate state between
+entered and closed (queued for review? What's a workflow look like for a bigger
+organization?) then that might solve the problem -- break the indexes up into
+human-sized chunks, and the computer will cope just fine.
 
-Understanding access patterns will improve understanding of how data should
-be layed out, but that said, I'm currently quite fond of the
-inverted_example, in which actual data is hashed out and stored separately,
-one per transaction, regardless of how many entries the transaction has, and
-the accounts are just indexes point at the transaction ids. You can change
-the order that transactions are displayed for a particular day by simply
-reordering them.
+> Seeing as even small busineses can see 1000s of transactions a month. 
+> Mid-size 10s of thousands?
 
-Or should the transactions be stored, one per file, in directories for the
-particular day or month, and just duplicated to other accounts?  Duplicating
-may not actually be dangerous, as git itself will maintain the same hash,
-and thus know their the same file?  Or is cross linking like this
-impossible?  Does the hash contain the path as well?
+> Understanding access patterns will improve understanding of how data should
+> be layed out, but that said, I'm currently quite fond of the
+> `inverted_example`, in which actual data is hashed out and stored separately,
+> one per transaction, regardless of how many entries the transaction has, and
+> the accounts are just indexes point at the transaction ids. You can change
+> the order that transactions are displayed for a particular day by simply
+> reordering them.
 
-Ah, so even if git could support cross linking like that, we won't do it as
-it violates the principle that we should be able to edit accounts with just
-git, a text editor and a program to generate the indices.
+It seems to me that most or all of the structure of the account is almost what
+a git `tree` object provides.
 
-There would be other indexes for various categories.  Category indexes would
-be broken out... like accounts? Or by other time periods?
+> Or should the transactions be stored, one per file, in directories for the
+> particular day or month, and just duplicated to other accounts?  Duplicating
+> may not actually be dangerous, as git itself will maintain the same hash,
+> and thus know their the same file?  Or is cross linking like this
+> impossible?  Does the hash contain the path as well?
 
-Will we need to be able to cross indices, eg, pull out by category and
-month?  Probably, but will we need to do that any time we won't want to be
-doing a full scan in one or the other index anyway?  Doubtful.
+Cross-linking like that is free in a bare git repo, and even editing with a
+text editor and the git tools is relatively easy: copy the files to the other
+place in the tree and add them there. When they're committed, they end up with
+the same hash and Just Work.
 
-What kind of searching is desirable? Necessary?
+> Ah, so even if git could support cross linking like that, we won't do it as
+> it violates the principle that we should be able to edit accounts with just
+> git, a text editor and a program to generate the indices.
+
+That actually works rather well. The program to generate the indices could just
+be `git hash-object` and a wrapper.
+
+> There would be other indexes for various categories.  Category indexes would
+> be broken out... like accounts? Or by other time periods?
+
+> Will we need to be able to cross indices, eg, pull out by category and
+> month?  Probably, but will we need to do that any time we won't want to be
+> doing a full scan in one or the other index anyway?  Doubtful.
+
+> What kind of searching is desirable? Necessary?
+
+I suspect that for all but the biggest businesses, linear scans will be quite
+fast enough. Indexes could be applied as an afterthought just to accelerate
+bigger accounts if needed. Considering how fast `git grep` can be, I'm not
+worried.
 
 Todo
 ====
